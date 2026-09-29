@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "iSPEL Kehadiran Auto",
+  "version": "1.5.0",
+  "description": "Isi kehadiran murid iSPEL secara automatik — tarik senarai tidak hadir yang disahkan guru kelas terus dari Portal SKTD, kemaskini + sahkan, langkau cuti.",
+  "permissions": [
+    "storage",
+    "scripting",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://moeispel.moe.gov.my/*",
+    "https://sktd.edu.my/*",
+    "https://portal.sktd.edu.my/*"
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "iSPEL Kehadiran Auto",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://moeispel.moe.gov.my/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ]
+}

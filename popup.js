@@ -1,4 +1,4 @@
-const VERSI = '1.4.0';
+const VERSI = '1.5.0';
 const JOB_KEY = 'ispelJob', PREF = 'ispelPref';
 
 /* ───── Pemecah nama: SEMUA aksara bukan huruf adalah pemisah, KECUALI jarak.
@@ -55,6 +55,27 @@ const CHK = ['sahkan', 'hadirLain', 'kosong', 'stopIsu', 'stopGagal'];
   if (!$('from').value) $('from').value = today;
   if (!$('to').value) $('to').value = today;
   render();
+})();
+
+/**
+ * Semak versi baharu — extension dipasang secara manual (Load unpacked),
+ * jadi Chrome TIDAK kemas kini automatik. Fail kecil ini dikemas kini oleh
+ * sekolah setiap kali versi baharu diterbitkan; kalau berbeza daripada
+ * VERSI di sini, tunjuk notis dengan pautan ke panduan (muat turun +
+ * pasang semula — sama seperti pasang kali pertama).
+ */
+(async () => {
+  try {
+    const r = await fetch('https://sktd.edu.my/ispel-kehadiran-versi.json', { cache: 'no-store' });
+    if (!r.ok) return;
+    const j = await r.json();
+    if (j.versi && j.versi !== VERSI) {
+      const el = $('kemaskini');
+      el.hidden = false;
+      el.innerHTML = `🔔 Versi baharu (${j.versi}) tersedia — anda guna v${VERSI}. ` +
+        `<a href="${j.pautan || 'https://sktd.edu.my/bantuan-ispel'}" target="_blank" rel="noreferrer">Kemas kini di sini →</a>`;
+    }
+  } catch (_) { /* tiada internet / tapak tidak dapat dicapai — senyap sahaja */ }
 })();
 function savePref() {
   const p = { days: days(), entries: collect() };

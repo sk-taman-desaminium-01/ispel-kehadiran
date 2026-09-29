@@ -5,9 +5,9 @@
 (() => {
   'use strict';
   if (window.__ispelVersi === '1.4.0') return;
-  window.__ispelVersi = '1.4.0';
+  window.__ispelVersi = '1.5.0';
 
-  const VERSI = '1.4.0';
+  const VERSI = '1.5.0';
   const JOB_KEY = 'ispelJob';
 
   /* ───────────────── 1. SELECTOR (calon; cuba satu demi satu) ───────────── */

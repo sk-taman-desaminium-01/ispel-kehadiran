@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "iSPEL Kehadiran Auto",
+  "name": "Kehadiran IDME",
   "version": "1.5.0",
   "description": "Isi kehadiran murid iSPEL secara automatik — tarik senarai tidak hadir yang disahkan guru kelas terus dari Portal SKTD, kemaskini + sahkan, langkau cuti.",
   "permissions": [
@@ -19,7 +19,7 @@
     "128": "icons/icon128.png"
   },
   "action": {
-    "default_title": "iSPEL Kehadiran Auto",
+    "default_title": "Kehadiran IDME",
     "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon16.png",

@@ -1,7 +1,8 @@
-# iSPEL Kehadiran Auto
+# Kehadiran IDME
 
 Extension Chrome untuk mengisi kehadiran murid di
-https://moeispel.moe.gov.my/sahsiah/kehadiran/tabguru
+https://moeispel.moe.gov.my/sahsiah/kehadiran/tabguru (nama dalaman "iSPEL";
+guru kenali sebagai "Kehadiran IDME" — nama itu yang dipaparkan di popup.)
 
 ## Pasang
 1. Chrome → `chrome://extensions`

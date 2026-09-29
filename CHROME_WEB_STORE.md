@@ -9,7 +9,7 @@ Tampal terus ke borang di https://chrome.google.com/webstore/devconsole
 
 ## Tajuk
 ```
-iSPEL Kehadiran Auto — SKTD
+Kehadiran IDME — SKTD
 ```
 
 ## Perihalan ringkas (132 aksara)

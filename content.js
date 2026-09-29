@@ -5,9 +5,9 @@
 (() => {
   'use strict';
   if (window.__ispelVersi === '1.4.0') return;
-  window.__ispelVersi = '1.5.0';
+  window.__ispelVersi = '1.5.1';
 
-  const VERSI = '1.5.0';
+  const VERSI = '1.5.1';
   const JOB_KEY = 'ispelJob';
 
   /* ───────────────── 1. SELECTOR (calon; cuba satu demi satu) ───────────── */
@@ -1107,10 +1107,37 @@
     markRow, saveAndConfirm, processDate, statusSekarang, inventoriButang, kawalanKehadiran, uruskanDialog, barisTidakLengkap, jejakNama, tutupDialogTertinggal, scoreName, matchRows, scoreOption, bestOption
   };
 
+  /* ───────────────── 11b. Kelas semasa (untuk "Tarik dari Portal") ─────
+   *
+   * iSPEL papar kelas dieja PENUH — "TAHUN DUA MAJU" — manakala Portal SKTD
+   * guna nombor — "2 MAJU". Pengguna sebenar menaip label iSPEL ke dalam
+   * kotak Kelas (wajar — itu yang dia nampak), dan ia tidak sepadan
+   * LANGSUNG dengan apa Portal kenali, jadi "Tarik dari Portal" senyap
+   * memulangkan kosong. Baca terus dari dropdown iSPEL dan tukar format di
+   * sini menghapuskan keseluruhan kelas ralat ini — pengguna tidak perlu
+   * taip kelas sendiri sama sekali.
+   */
+  const NOMBOR_TAHUN = {
+    SATU: '1', DUA: '2', TIGA: '3', EMPAT: '4', LIMA: '5', ENAM: '6',
+  };
+  function kelasSemasa() {
+    const opt = document.querySelector('#txtNamakelas option:checked') ||
+      document.querySelector('#txtNamakelas option[selected]');
+    const mentah = txt(opt);
+    if (!mentah) return { mentah: '', portal: '' };
+    // "TAHUN DUA MAJU" / "TAHUN 2 MAJU" → "2 MAJU"
+    const m = /^TAHUN\s+([A-Z]+|\d)\s+(.+)$/i.exec(mentah);
+    if (!m) return { mentah, portal: mentah }; // PPKI dsb — kekal seadanya
+    const kata = m[1].toUpperCase();
+    const nombor = /^\d$/.test(kata) ? kata : (NOMBOR_TAHUN[kata] || kata);
+    return { mentah, portal: `${nombor} ${m[2].trim().toUpperCase()}` };
+  }
+
   /* ───────────────── 12. Mesej dari popup ───────────────── */
   chrome.runtime.onMessage.addListener((msg, _s, reply) => {
     if (msg.cmd === 'ping') { reply({ ok: true, versi: VERSI, url: location.href }); return true; }
     if (msg.cmd === 'dump') { reply({ ok: true, data: dumpStructure() }); return true; }
+    if (msg.cmd === 'kelas') { reply({ ok: true, ...kelasSemasa() }); return true; }
     if (msg.cmd === 'rows') {
       expandList().then(() =>
         reply({ ok: true, versi: VERSI, nama: readRows().map((r) => r.__name), diag: diagnose() }));

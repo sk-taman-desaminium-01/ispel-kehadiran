@@ -1,4 +1,4 @@
-const VERSI = '1.5.0';
+const VERSI = '1.5.1';
 const JOB_KEY = 'ispelJob', PREF = 'ispelPref';
 
 /* ───── Pemecah nama: SEMUA aksara bukan huruf adalah pemisah, KECUALI jarak.
@@ -156,8 +156,25 @@ function collect() {
  * berasingan diperlukan. Lihat `sktd-portal/src/app/api/kehadiran/route.ts`.
  */
 async function tarikDariPortal() {
-  const kelas = $('kelasPortal').value.trim();
-  if (!kelas) { msg('⚠️ Isi nama Kelas dahulu (Langkah 1) — cth: 4 NILAM'); return; }
+  let kelas = $('kelasPortal').value.trim();
+
+  // Baca kelas TERUS dari dropdown iSPEL — ia dieja penuh ("TAHUN DUA
+  // MAJU") manakala Portal guna nombor ("2 MAJU"). Taipan manual pengguna
+  // (yang menyalin apa dia NAMPAK di iSPEL) hampir selalu tidak sepadan
+  // format Portal, dan itu punca "tiada nama ditarik" yang paling kerap.
+  try {
+    const k = await send('kelas');
+    if (k?.portal) {
+      if (k.portal !== kelas) {
+        $('kelasPortal').value = k.portal;
+        kelas = k.portal;
+        savePref();
+        msg(`Kelas dikesan dari iSPEL: "${k.mentah}" → "${k.portal}"`);
+      }
+    }
+  } catch (_) { /* iSPEL belum dibuka / kelas belum dipilih — guna taipan manual */ }
+
+  if (!kelas) { msg('⚠️ Buka iSPEL & pilih kelas dahulu, atau isi nama Kelas manual (Langkah 1)'); return; }
   collect();
   if (!entries.length) { msg('⚠️ Bina jadual dahulu (Langkah 1)'); return; }
 

@@ -1,4 +1,4 @@
-const VERSI = '1.5.1';
+const VERSI = '1.6.0';
 const JOB_KEY = 'ispelJob', PREF = 'ispelPref';
 
 /* ───── Pemecah nama: SEMUA aksara bukan huruf adalah pemisah, KECUALI jarak.

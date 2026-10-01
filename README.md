@@ -81,15 +81,25 @@ Tetapan `sahkan` dalam popup memilih antara kedua-duanya. **Batal** ada dalam
 - Tarikh dipapar & ditulis dalam **DD/MM/YYYY** di semua tempat — `<input type=date>`
   memapar ikut locale dan pernah menyebabkan bulan tersilap dengan hari.
 
-## Cara guna
-1. Log masuk iSPEL, buka tab kehadiran, pilih kelas.
-2. Klik ikon extension.
-3. **Langkah 1** — set julat tarikh + hari sekolah + tarikh cuti yang anda tahu → *Bina jadual*.
-4. **Langkah 2** — taip nama pendek murid tidak hadir bagi setiap tarikh
-   (contoh `aisyah, muhd ali`). Kosong = semua hadir.
+## Cara guna — kerja harian biasa (v1.6.0+)
+1. Guru kelas sahkan kehadiran di Portal SKTD (`/kawalan-kelas`).
+2. Log masuk iSPEL, buka **Kehadiran Harian**, pilih kelas + tarikh seperti biasa.
+3. Klik butang biru **"📥 Isi dari Portal SKTD"** — dah terbenam terus pada
+   halaman iSPEL sendiri, sebelah butang Kemaskini. Tiada popup, tiada
+   langkah lain.
+
+Kelas & tarikh diambil TERUS dari borang iSPEL yang sedang dilihat — tiada
+taipan manual, tiada risiko silap format ("TAHUN DUA MAJU" vs "2 MAJU").
+
+## Cara guna — kejar balik berbilang hari (Lanjutan, popup)
+1. Klik ikon extension.
+2. **Lanjutan** — set julat tarikh + hari sekolah + tarikh cuti yang anda tahu → *Bina jadual*.
+3. **Langkah 2** — taip nama pendek murid tidak hadir bagi setiap tarikh
+   (contoh `aisyah, muhd ali`), atau klik *Tarik dari Portal SKTD* untuk
+   isi automatik bagi tarikh yang sudah disahkan.
    Klik *Semak nama dengan senarai kelas semasa* untuk pastikan setiap nama
    padan dengan seorang murid sahaja (✓ = selamat, ⚠ = kabur/tiada).
-5. **Langkah 3** — klik **Teruskan**. Setiap tarikh: tanda tidak hadir →
+4. **Langkah 3** — klik **Teruskan**. Setiap tarikh: tanda tidak hadir →
    Masalah Kesihatan → Demam → Kemaskini → tunggu pengesahan hijau.
 
 ## Keselamatan

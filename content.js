@@ -5,9 +5,9 @@
 (() => {
   'use strict';
   if (window.__ispelVersi === '1.4.0') return;
-  window.__ispelVersi = '1.5.1';
+  window.__ispelVersi = '1.6.0';
 
-  const VERSI = '1.5.1';
+  const VERSI = '1.6.0';
   const JOB_KEY = 'ispelJob';
 
   /* ───────────────── 1. SELECTOR (calon; cuba satu demi satu) ───────────── */
@@ -1131,6 +1131,125 @@
     const kata = m[1].toUpperCase();
     const nombor = /^\d$/.test(kata) ? kata : (NOMBOR_TAHUN[kata] || kata);
     return { mentah, portal: `${nombor} ${m[2].trim().toUpperCase()}` };
+  }
+
+  /* ───────────────── 11c. Butang terbenam — "Isi dari Portal SKTD" ─────
+   *
+   * Permintaan pengguna 1 Okt 2026: popup 3-langkah (bina jadual → tarik →
+   * tetapan → jalankan) terlalu rumit untuk kerja harian biasa (satu kelas,
+   * satu hari — 90% kes sebenar). Corak terbaik extension Chrome: letak
+   * tindakan SEDEKAT mungkin dengan halaman yang diperluas, bukan paksa
+   * buka popup berasingan (rujukan: UX Best Practices for Browser
+   * Extensions, plasmo.com, 2026).
+   *
+   * Jadi: SATU butang terus pada halaman iSPEL sendiri, guna kelas &
+   * tarikh yang SUDAH dipilih di borang — tiada langkah lain. Wizard
+   * popup kekal, dinamakan semula "Lanjutan" untuk kejar balik berbilang
+   * hari sahaja (kes jarang).
+   *
+   * swal() jQuery halaman TIDAK boleh dipanggil dari sini — content
+   * script berjalan dalam "isolated world", tiada akses ke skop JS
+   * halaman. Notis sendiri (tunjukNotis) dibina terus dalam DOM.
+   */
+  const OPT_LALAI = {
+    sebab: 'Masalah Kesihatan', jenis: 'Demam',
+    sahkan: true, tandaHadirLain: true, langkauKosong: true,
+    berhentiJikaIsu: false, berhentiJikaGagal: true, jedaMs: 900,
+  };
+
+  function tarikhSemasaIso() {
+    const v = (document.querySelector('#tkh_HH') || {}).value || '';
+    const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(v.trim());
+    return m ? `${m[3]}-${m[2]}-${m[1]}` : null;
+  }
+
+  function tunjukNotis(tajuk, teks, jenis) {
+    const WARNA = {
+      success: '#167a4b', error: '#982d2d', warning: '#9a6b06', info: '#123561',
+    };
+    document.querySelectorAll('.kehadiran-idme-notis').forEach((n) => n.remove());
+    const kotak = document.createElement('div');
+    kotak.className = 'kehadiran-idme-notis';
+    kotak.style.cssText = `position:fixed;top:16px;right:16px;z-index:999999;max-width:360px;
+      background:#fff;border-left:5px solid ${WARNA[jenis] || WARNA.info};border-radius:8px;
+      box-shadow:0 4px 18px rgba(0,0,0,.18);padding:14px 16px;font:13px/1.5 -apple-system,sans-serif;color:#1a1a1a;`;
+    kotak.innerHTML = `<b style="display:block;margin-bottom:4px;color:${WARNA[jenis] || WARNA.info}">${tajuk}</b>` +
+      `<span style="white-space:pre-line">${teks.replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]))}</span>`;
+    document.body.appendChild(kotak);
+    if (jenis !== 'error') setTimeout(() => kotak.remove(), 9000);
+  }
+
+  async function isiDariPortalSatuHari(btn) {
+    const asalTeks = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '⏳ Menyemak Portal…';
+    try {
+      const kelas = kelasSemasa();
+      const iso = tarikhSemasaIso();
+      if (!kelas.portal || !iso) {
+        tunjukNotis('Tidak dapat kesan kelas/tarikh', 'Pastikan kelas dan tarikh sudah dipilih pada borang di atas, kemudian cuba lagi.', 'warning');
+        return;
+      }
+      let data = null, status = null;
+      for (const asal of ['https://sktd.edu.my/portal', 'https://portal.sktd.edu.my/portal']) {
+        try {
+          const r = await fetch(`${asal}/api/kehadiran?kelas=${encodeURIComponent(kelas.portal)}&tarikh=${iso}`, { credentials: 'include' });
+          status = r.status;
+          if (r.ok) { data = await r.json(); break; }
+        } catch (_) { /* cuba asal seterusnya */ }
+      }
+      if (!data) {
+        const msg = status === 401
+          ? 'Log masuk portal.sktd.edu.my di tab lain Chrome dahulu, kemudian cuba lagi.'
+          : `Tidak dapat hubungi Portal SKTD (${status ?? 'sambungan gagal'}).`;
+        tunjukNotis('Gagal tarik dari Portal', msg, 'error');
+        return;
+      }
+      if (!data.disahkan) {
+        tunjukNotis('Belum disahkan di Portal',
+          `Guru kelas belum sahkan kehadiran ${kelas.mentah} bagi ${iso.split('-').reverse().join('/')}. Sahkan dahulu di portal.sktd.edu.my/portal/kawalan-kelas.`, 'warning');
+        return;
+      }
+
+      btn.textContent = '⏳ Mengisi iSPEL…';
+      const names = data.tidakHadir.map((t) => ({ nama: t.nama, kategori: t.kategori, sebab: t.sebab }));
+      const hasil = await processDate(iso, names, { opt: OPT_LALAI });
+
+      if (hasil.status === 'berjaya') {
+        tunjukNotis('Berjaya ✓', `${names.length} murid tidak hadir diisi & disahkan di iSPEL.`, 'success');
+      } else if (hasil.status === 'skip') {
+        tunjukNotis('Dilangkau', hasil.msg, 'info');
+      } else {
+        tunjukNotis('Ada isu', hasil.msg + (hasil.isu?.length ? '\n\n' + hasil.isu.join('\n') : ''), 'error');
+      }
+    } catch (e) {
+      tunjukNotis('Ralat', String(e?.message || e), 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = asalTeks;
+    }
+  }
+
+  function bentukButangSuntik() {
+    if (document.getElementById('kehadiran-idme-sync-btn')) return;
+    const sasaran = document.getElementById('kemaskiniKehadiran');
+    if (!sasaran || !sasaran.parentElement) return;
+    const btn = document.createElement('button');
+    btn.id = 'kehadiran-idme-sync-btn';
+    btn.type = 'button';
+    btn.textContent = '📥 Isi dari Portal SKTD';
+    btn.title = 'Tarik senarai tidak hadir yang disahkan guru kelas di Portal SKTD, isi terus ke iSPEL';
+    btn.style.cssText = 'background:#123561;color:#fff;border:none;border-radius:6px;' +
+      'padding:8px 14px;margin-left:8px;font-weight:600;cursor:pointer;font-size:13px;';
+    btn.addEventListener('click', () => isiDariPortalSatuHari(btn));
+    sasaran.parentElement.insertBefore(btn, sasaran.nextSibling);
+  }
+
+  if (halamanKehadiran()) {
+    bentukButangSuntik();
+    // Borang kehadiran dibina semula oleh jQuery bila kelas/tarikh ditukar —
+    // pantau DOM supaya butang kekal walau selepas itu.
+    new MutationObserver(bentukButangSuntik).observe(document.body, { childList: true, subtree: true });
   }
 
   /* ───────────────── 12. Mesej dari popup ───────────────── */

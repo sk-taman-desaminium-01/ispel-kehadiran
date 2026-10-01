@@ -1,4 +1,4 @@
-const VERSI = '1.8.0';
+const VERSI = '1.9.0';
 const JOB_KEY = 'ispelJob', PREF = 'ispelPref';
 
 /* ───── Pemecah nama: SEMUA aksara bukan huruf adalah pemisah, KECUALI jarak.
@@ -32,6 +32,16 @@ let roster = null;  // nama murid dari jadual iSPEL (untuk semakan)
  * dipisah-koma) langsung tidak berubah.
  */
 let metaPortal = {};
+
+/**
+ * Tarikh yang Portal SUDAH SAHKAN (disahkan=true), WALAUPUN tiada nama
+ * (semua hadir — kotak teks kekal kosong). Tanpa penanda berasingan ini,
+ * "kosong kerana belum disahkan" dan "kosong kerana disahkan-semua-hadir"
+ * kelihatan SAMA (kotak kosong) dan Teruskan Semua akan langkau KEDUANYA —
+ * punca sebenar kes "isi 2 bulan, kebanyakan hari semua hadir, tapi tak
+ * pernah disahkan di iSPEL" (laporan pengguna 1 Okt 2026).
+ */
+let disahkanPortal = new Set();
 
 const PORTAL_ASAL = ['https://sktd.edu.my/portal', 'https://portal.sktd.edu.my/portal'];
 
@@ -190,11 +200,12 @@ async function tarikDariPortal() {
     if (!res.ok) { ralat++; ralatContoh = ralatContoh || `Portal memulangkan ${res.status}.`; continue; }
     const j = await res.json().catch(() => null);
     if (!j) { ralat++; ralatContoh = ralatContoh || 'Jawapan Portal tidak difahami.'; continue; }
-    if (!j.disahkan) { belumSah++; continue; }
+    if (!j.disahkan) { belumSah++; disahkanPortal.delete(e.tarikh); continue; }
 
     metaPortal[e.tarikh] = {};
     for (const t of j.tidakHadir) metaPortal[e.tarikh][t.nama.toLowerCase()] = { kategori: t.kategori, sebab: t.sebab };
     e.names = j.tidakHadir.map((t) => t.nama);
+    disahkanPortal.add(e.tarikh); // disahkan di Portal walaupun tiada nama (semua hadir)
     ok++;
   }
 
@@ -331,14 +342,28 @@ async function mulakan(hanyaSatu) {
   try {
     collect();
     if (!entries.length) throw new Error('Bina jadual dahulu');
-    // Tarikh tiada nama = semua hadir, sentiasa dilangkau — tiada tetapan
-    // perlu ditunjukkan untuk ini (permintaan pengguna 1 Okt 2026: buang
-    // tanda-tanda yang mengelirukan guru tua, auto guna yang sesuai sahaja).
-    const senarai = entries.filter((e) => e.names.length);
+    // Proses tarikh yang ADA nama ditaip, ATAU disahkan di Portal (walaupun
+    // kosong — semua hadir). Tarikh yang bukan kedua-duanya (tiada nama,
+    // tiada pengesahan Portal) dilangkau — tiada tetapan ditunjukkan untuk
+    // ini (permintaan pengguna 1 Okt 2026: auto guna yang sesuai sahaja).
+    const senarai = entries.filter((e) => e.names.length || disahkanPortal.has(e.tarikh));
     if (!senarai.length) {
-      throw new Error('Tiada tarikh berisi nama — pastikan nama ditaip dalam kotak bersebelahan tarikh, dipisah dengan koma');
+      throw new Error('Tiada tarikh berisi nama atau disahkan di Portal — taip nama, atau klik "Tarik dari Portal SKTD" dahulu');
     }
-    const kerja = hanyaSatu ? senarai.slice(0, 1) : senarai;
+    // Nama yang ditarik dari Portal bawa kategori/sebab SEBENAR per murid
+    // (metaPortal) — tanpa penukaran ini, setiap nama dihantar sebagai
+    // rentetan biasa dan jatuh balik ke sebab GENERIK job (cth "Demam")
+    // untuk semua orang, membuang maklumat sebenar yang guru kelas sudah
+    // sahkan di Portal (pepijat dijumpai 1 Okt 2026 semasa semak kes isi
+    // 2 bulan). Nama ditaip manual (tiada padanan metaPortal) kekal rentetan.
+    const kerja = (hanyaSatu ? senarai.slice(0, 1) : senarai).map((e) => ({
+      tarikh: e.tarikh,
+      disahkan: disahkanPortal.has(e.tarikh),
+      names: e.names.map((n) => {
+        const meta = metaPortal[e.tarikh]?.[n.toLowerCase()];
+        return meta ? { nama: n, kategori: meta.kategori, sebab: meta.sebab } : n;
+      }),
+    }));
     await chrome.storage.local.set({ [JOB_KEY]: {
       status: 'running', index: 0, entries: kerja, log: [],
       opt: {

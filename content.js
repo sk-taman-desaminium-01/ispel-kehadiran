@@ -5,9 +5,9 @@
 (() => {
   'use strict';
   if (window.__ispelVersi === '1.4.0') return;
-  window.__ispelVersi = '1.8.0';
+  window.__ispelVersi = '1.9.0';
 
-  const VERSI = '1.8.0';
+  const VERSI = '1.9.0';
   const JOB_KEY = 'ispelJob';
 
   /* ───────────────── 1. SELECTOR (calon; cuba satu demi satu) ───────────── */
@@ -982,10 +982,15 @@
   }
 
   /* ───────────────── 9. Proses satu tarikh ───────────────── */
-  async function processDate(iso, names, job) {
+  async function processDate(iso, names, job, disahkanPortal = false) {
     const log = (status, msg, extra) => ({ tarikh: iso, status, msg, ...extra });
 
-    if (!names.length && job.opt.langkauKosong) {
+    // Portal boleh sahkan hari sebagai "semua hadir" (tiada nama, tapi
+    // SUDAH disahkan) — itu mesti tetap disahkan di iSPEL, bukan dilangkau
+    // sama macam hari yang tidak disentuh langsung. Tanpa `disahkanPortal`,
+    // kedua-dua kelihatan sama (names kosong) dan hari "semua hadir" tidak
+    // pernah tercatat di iSPEL (laporan pengguna 1 Okt 2026, kes isi 2 bulan).
+    if (!names.length && job.opt.langkauKosong && !disahkanPortal) {
       return log('skip', 'tiada nama diisi untuk tarikh ini');
     }
 
@@ -1065,9 +1070,9 @@
       if (!fresh || fresh.status !== 'running') return;      // pengguna tekan Henti
       job = fresh;
 
-      const { tarikh: iso, names = [] } = job.entries[job.index];
+      const { tarikh: iso, names = [], disahkan = false } = job.entries[job.index];
       let entry;
-      try { entry = await processDate(iso, names, job); }
+      try { entry = await processDate(iso, names, job, disahkan); }
       catch (e) { entry = { tarikh: iso, status: 'gagal', msg: 'ralat: ' + e.message }; }
 
       job.log.push(entry);
@@ -1239,7 +1244,10 @@
 
       btn.textContent = '⏳ Mengisi iSPEL…';
       const names = data.tidakHadir.map((t) => ({ nama: t.nama, kategori: t.kategori, sebab: t.sebab }));
-      const hasil = await processDate(iso, names, { opt: OPT_LALAI });
+      // `data.disahkan` sudah disahkan true di atas (guard awal) — hantar
+      // terus supaya hari "semua hadir" (tiada nama) tetap disahkan di
+      // iSPEL, bukan dilangkau macam hari yang tidak disentuh Portal.
+      const hasil = await processDate(iso, names, { opt: OPT_LALAI }, true);
 
       if (hasil.status === 'berjaya') {
         tunjukNotis('Berjaya ✓', `${names.length} murid tidak hadir diisi & disahkan di iSPEL.`, 'success');

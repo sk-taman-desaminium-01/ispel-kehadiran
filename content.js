@@ -5,9 +5,9 @@
 (() => {
   'use strict';
   if (window.__ispelVersi === '1.4.0') return;
-  window.__ispelVersi = '1.6.1';
+  window.__ispelVersi = '1.7.0';
 
-  const VERSI = '1.6.1';
+  const VERSI = '1.7.0';
   const JOB_KEY = 'ispelJob';
 
   /* ───────────────── 1. SELECTOR (calon; cuba satu demi satu) ───────────── */
@@ -202,16 +202,36 @@
     .replace(/\s+/g, ' ')
     .trim();
 
+  /* Ejaan nama murid Portal vs iSPEL sering berbeza ("MUHAMMAD" vs
+   * "MUHAMAD", "BINTI" vs "BINT" tersingkat) — ini bukan dua orang
+   * berbeza, cuma dieja lain. Sejak Portal menghantar NAMA PENUH (bukan
+   * lagi ditaip pendek oleh guru), padanan mesti tahan ejaan sebegini,
+   * bukan hanya pemotongan. Cermin corak `padan-nama.ts` (nama guru). */
+  const SERUPA = {
+    MUHAMMAD: 'MUHAMMAD', MUHAMAD: 'MUHAMMAD', MOHAMMAD: 'MUHAMMAD',
+    MOHAMAD: 'MUHAMMAD', MOHD: 'MUHAMMAD', MUHD: 'MUHAMMAD', MD: 'MUHAMMAD',
+    NUR: 'NUR', NOOR: 'NUR', NOR: 'NUR',
+    ABD: 'ABDUL',
+  };
+  function normToken(t) {
+    // Penanda keturunan — pelbagai ejaan/pemotongan, SEMUA sama makna.
+    // "BINT" (iSPEL memotong "BINTI") ialah awalan ≥3 huruf "BINTI".
+    if (t === 'BIN' || t === 'BT' || t === 'B' || t === 'BTE' ||
+        (t.length >= 3 && 'BINTI'.startsWith(t))) return 'BIN';
+    return SERUPA[t] || t;
+  }
+
   // "nur aisyah" padan dengan "NUR AISYAH BINTI AHMAD"; "nuraisyah" pun padan.
   function scoreName(short, full) {
     const F = norm(full), S = norm(short);
     if (!S || !F) return 0;
-    const ftok = F.split(' ');
-    const stok = S.split(' ');
+    const ftok = F.split(' ').map(normToken);
+    const stok = S.split(' ').map(normToken);
     let hit = 0;
     for (const t of stok) {
       if (ftok.some((f) => f === t)) hit += 2;
       else if (ftok.some((f) => f.startsWith(t) && t.length >= 3)) hit += 1.5;
+      else if (ftok.some((f) => t.startsWith(f) && f.length >= 3)) hit += 1.5;
       else if (F.replace(/ /g, '').includes(t)) hit += 1;
       else return 0; // setiap perkataan mesti ada
     }

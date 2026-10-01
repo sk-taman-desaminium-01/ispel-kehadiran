@@ -3,7 +3,7 @@
 <div class="wrap">
   <div class="kepala">
     <h1>Kehadiran IDME</h1>
-    <span class="ver">v1.6.1</span>
+    <span class="ver">v1.7.0</span>
   </div>
   <div id="kemaskini" class="kemaskini" hidden></div>
 
@@ -18,61 +18,65 @@
     </p>
   </div>
 
-  <!-- LANGKAH 1 -->
-  <div class="step">
-    <div class="steplabel">Lanjutan · isi berbilang hari sekali gus (jarang perlu)</div>
-    <label>Kelas (untuk tarik dari Portal SKTD)</label>
-    <input type="text" id="kelasPortal" placeholder="cth: 4 NILAM atau PPKI SUNFLOWER">
-    <div class="hint">Dikesan automatik dari kelas yang dipilih di iSPEL bila anda tekan &quot;Tarik dari Portal SKTD&quot; — taip di sini hanya jika belum buka iSPEL.</div>
-    <div class="row">
-      <div><label>Dari</label><input type="date" id="from"></div>
-      <div><label>Hingga</label><input type="date" id="to"></div>
-    </div>
-    <label>Hari sekolah</label>
-    <div class="days" id="days"></div>
-    <label>Langkau tarikh (cuti yang anda tahu)</label>
-    <input type="text" id="skip" placeholder="16/08/2026, 20/08/2026">
-    <button id="build" class="primary wide">Bina jadual</button>
-  </div>
+  <details class="lanjutan">
+    <summary>Lanjutan — isi berbilang hari sekali gus (jarang perlu)</summary>
 
-  <!-- LANGKAH 2 -->
-  <div class="step" id="step2" hidden>
-    <div class="steplabel">2 · Nama murid <b>tidak hadir</b> bagi setiap tarikh</div>
-    <button id="tarikPortal" class="primary wide">Tarik dari Portal SKTD (kehadiran disahkan)</button>
-    <div class="hint">Isi hanya tarikh yang guru kelas SUDAH SAHKAN di Portal. Tarikh lain kekal kosong — taip manual jika perlu.</div>
-    <div class="row" style="margin-top:8px">
-      <div><input type="text" id="bulk" placeholder="aisyah, muhd ali"></div>
-      <button id="fillall" class="ghost">Isi semua (manual)</button>
+    <!-- LANGKAH 1 -->
+    <div class="step">
+      <div class="steplabel">1 · Julat tarikh</div>
+      <label>Kelas (untuk tarik dari Portal SKTD)</label>
+      <input type="text" id="kelasPortal" placeholder="cth: 4 NILAM atau PPKI SUNFLOWER">
+      <div class="hint">Dikesan automatik dari kelas yang dipilih di iSPEL bila anda tekan &quot;Tarik dari Portal SKTD&quot; — taip di sini hanya jika belum buka iSPEL.</div>
+      <div class="row">
+        <div><label>Dari</label><input type="date" id="from"></div>
+        <div><label>Hingga</label><input type="date" id="to"></div>
+      </div>
+      <label>Hari sekolah</label>
+      <div class="days" id="days"></div>
+      <label>Langkau tarikh (cuti yang anda tahu)</label>
+      <input type="text" id="skip" placeholder="16/08/2026, 20/08/2026">
+      <button id="build" class="primary wide">Bina jadual</button>
     </div>
-    <div class="hint">Nama pendek atau 2 perkataan sahaja sudah cukup. Kosongkan tarikh = semua hadir.</div>
-    <div id="sched" class="sched"></div>
-    <button id="check" class="ghost wide">Semak nama dengan senarai kelas semasa</button>
-  </div>
 
-  <!-- LANGKAH 3 -->
-  <div class="step" id="step3" hidden>
-    <div class="steplabel">3 · Tetapan &amp; jalankan</div>
-    <div class="hint">Kategori/Sebab di bawah HANYA lalai untuk nama yang ditaip manual (Langkah 2). Nama yang ditarik dari Portal sudah bawa Kategori/Sebab sendiri.</div>
-    <div class="row">
-      <div><label>Kategori lalai (dropdown 1)</label><input type="text" id="sebab" value="Masalah Kesihatan"></div>
-      <div><label>Sebab lalai (dropdown 2)</label><input type="text" id="jenis" value="Demam"></div>
+    <!-- LANGKAH 2 -->
+    <div class="step" id="step2" hidden>
+      <div class="steplabel">2 · Nama murid <b>tidak hadir</b> bagi setiap tarikh</div>
+      <button id="tarikPortal" class="primary wide">Tarik dari Portal SKTD (kehadiran disahkan)</button>
+      <div class="hint">Isi hanya tarikh yang guru kelas SUDAH SAHKAN di Portal. Tarikh lain kekal kosong — taip manual jika perlu.</div>
+      <div class="row" style="margin-top:8px">
+        <div><input type="text" id="bulk" placeholder="aisyah, muhd ali"></div>
+        <button id="fillall" class="ghost">Isi semua (manual)</button>
+      </div>
+      <div class="hint">Nama pendek atau 2 perkataan sahaja sudah cukup. Kosongkan tarikh = semua hadir.</div>
+      <div id="sched" class="sched"></div>
+      <button id="check" class="ghost wide">Semak nama dengan senarai kelas semasa</button>
     </div>
-    <label class="chk"><input type="checkbox" id="sahkan" checked> <b>Sahkan</b> selepas kemaskini (kuning → hijau)</label>
-    <label class="chk"><input type="checkbox" id="hadirLain" checked> Tanda <b>Hadir</b> untuk murid lain
-      <span class="hint2">(buka tanda ini = mod TAMBAH: murid lain tidak disentuh)</span></label>
-    <label class="chk"><input type="checkbox" id="kosong" checked> Langkau tarikh yang tiada nama</label>
-    <label class="chk"><input type="checkbox" id="stopIsu" checked> Berhenti jika nama tak dapat dipadankan</label>
-    <label class="chk"><input type="checkbox" id="stopGagal"> Berhenti pada kegagalan pertama</label>
-    <div class="btns">
-      <button id="test" class="primary">Uji 1 tarikh</button>
-      <button id="start">Teruskan semua</button>
-      <button id="stop">Henti</button>
-      <button id="dump" class="ghost">Rakam struktur halaman</button>
-    </div>
-  </div>
 
-  <div id="status" class="status"></div>
-  <pre id="log"></pre>
+    <!-- LANGKAH 3 -->
+    <div class="step" id="step3" hidden>
+      <div class="steplabel">3 · Tetapan &amp; jalankan</div>
+      <div class="hint">Kategori/Sebab di bawah HANYA lalai untuk nama yang ditaip manual (Langkah 2). Nama yang ditarik dari Portal sudah bawa Kategori/Sebab sendiri.</div>
+      <div class="row">
+        <div><label>Kategori lalai (dropdown 1)</label><input type="text" id="sebab" value="Masalah Kesihatan"></div>
+        <div><label>Sebab lalai (dropdown 2)</label><input type="text" id="jenis" value="Demam"></div>
+      </div>
+      <label class="chk"><input type="checkbox" id="sahkan" checked> <b>Sahkan</b> selepas kemaskini (kuning → hijau)</label>
+      <label class="chk"><input type="checkbox" id="hadirLain" checked> Tanda <b>Hadir</b> untuk murid lain
+        <span class="hint2">(buka tanda ini = mod TAMBAH: murid lain tidak disentuh)</span></label>
+      <label class="chk"><input type="checkbox" id="kosong" checked> Langkau tarikh yang tiada nama</label>
+      <label class="chk"><input type="checkbox" id="stopIsu" checked> Berhenti jika nama tak dapat dipadankan</label>
+      <label class="chk"><input type="checkbox" id="stopGagal"> Berhenti pada kegagalan pertama</label>
+      <div class="btns">
+        <button id="test" class="primary">Uji 1 tarikh</button>
+        <button id="start">Teruskan semua</button>
+        <button id="stop">Henti</button>
+        <button id="dump" class="ghost">Rakam struktur halaman</button>
+      </div>
+    </div>
+
+    <div id="status" class="status"></div>
+    <pre id="log"></pre>
+  </details>
   </div>
 </div>
 <script src="popup.js"></script>

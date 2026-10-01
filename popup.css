@@ -82,8 +82,18 @@ pre {
   background: var(--bg-lembut); border-radius: 8px; white-space: pre-wrap; word-break: break-word;
 }
 
+.lanjutan { margin: 4px 0 10px; }
+.lanjutan summary {
+  cursor: pointer; font-size: 12px; font-weight: 700; color: var(--navy);
+  padding: 8px 0; list-style: none;
+}
+.lanjutan summary::-webkit-details-marker { display: none; }
+.lanjutan summary::before { content: '▸ '; }
+.lanjutan[open] summary::before { content: '▾ '; }
+.lanjutan .step:first-of-type { border-top: 0; margin-top: 4px; padding-top: 0; }
+
 .utama {
-  margin: 0 16px 12px; padding: 12px 14px; border-radius: 10px;
+  margin: 0 0 12px; padding: 12px 14px; border-radius: 10px;
   background: #edf8f2; border: 1px solid #cfe9db;
 }
 .utama-label { margin: 0; font-weight: 800; font-size: 12.5px; color: #167a4b; }

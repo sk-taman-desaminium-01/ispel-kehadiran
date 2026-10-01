@@ -4,10 +4,20 @@
  */
 (() => {
   'use strict';
-  if (window.__ispelVersi === '1.4.0') return;
-  window.__ispelVersi = '1.9.0';
+  // Penjaga suntikan-berganda. Dahulu banding dengan versi LAMA yang
+  // dikunci keras ('1.4.0') — tidak pernah benar lagi sejak versi itu, jadi
+  // ia langsung tidak menghalang apa-apa. Suntikan manual popup.js
+  // (fallback bila ping gagal — lihat pastikanVersiSama() di popup.js) atau
+  // pemuatan semula extension sambil tab iSPEL kekal terbuka boleh
+  // menyuntik fail ini BERKALI-KALI dalam konteks halaman yang sama; tanpa
+  // penjaga yang betul, setiap suntikan mendaftar pendengar
+  // chrome.runtime.onMessage BAHARU — bila "start" dicetuskan, SEMUA
+  // pendengar jalankan runJob() serentak, menulis ke job storage yang sama
+  // serentak. Semak kewujudan SEBARANG nilai sedia ada, bukan versi tertentu.
+  if (window.__ispelVersi) return;
 
-  const VERSI = '1.9.0';
+  const VERSI = '1.0.0';
+  window.__ispelVersi = VERSI;
   const JOB_KEY = 'ispelJob';
 
   /* ───────────────── 1. SELECTOR (calon; cuba satu demi satu) ───────────── */
@@ -1271,7 +1281,7 @@
     const btn = document.createElement('button');
     btn.id = 'kehadiran-idme-sync-btn';
     btn.type = 'button';
-    btn.textContent = '📥 Isi dari Portal SKTD';
+    btn.textContent = '📥 Portal SKTD';
     btn.title = 'Tarik senarai tidak hadir yang disahkan guru kelas di Portal SKTD, isi terus ke iSPEL';
     btn.style.cssText = 'background:#123561;color:#fff;border:none;border-radius:6px;' +
       'padding:8px 14px;margin-left:8px;font-weight:600;cursor:pointer;font-size:13px;';

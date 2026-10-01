@@ -1,4 +1,4 @@
-const VERSI = '1.9.0';
+const VERSI = '1.0.0';
 const JOB_KEY = 'ispelJob', PREF = 'ispelPref';
 
 /* ───── Pemecah nama: SEMUA aksara bukan huruf adalah pemisah, KECUALI jarak.
@@ -187,12 +187,17 @@ async function tarikDariPortal() {
 
   let ok = 0, belumSah = 0, ralat = 0, ralatContoh = '';
   for (const e of entries) {
+    // Cuba SETIAP asal sehingga satu berjaya (res.ok) — jangan berhenti pada
+    // respons HTTP pertama (cth 401 dari satu asal) sedangkan asal lain
+    // mungkin berjaya. Dahulu kod ini berhenti selepas fetch PERTAMA yang
+    // tidak throw, walau statusnya 401 — tidak konsisten dengan background.js
+    // (laluan butang utama) yang sudah betul cuba kedua-dua asal.
     let res = null, gagalSemua = true;
     for (const asal of PORTAL_ASAL) {
       try {
         res = await fetch(`${asal}/api/kehadiran?kelas=${encodeURIComponent(kelas)}&tarikh=${e.tarikh}`, { credentials: 'include' });
         gagalSemua = false;
-        break;
+        if (res.ok) break;
       } catch (_) { /* cuba asal seterusnya */ }
     }
     if (gagalSemua || !res) { ralat++; ralatContoh = ralatContoh || 'Sambungan ke Portal gagal — semak internet.'; continue; }
@@ -221,16 +226,32 @@ $('fillall').onclick = () => {
   drawSched(); savePref();
 };
 
-/* ───── semakan nama vs senarai kelas ───── */
+/* ───── semakan nama vs senarai kelas ─────
+ * Cermin TEPAT scoreName() dalam content.js (normalisasi BINTI/BIN/BT/MUHAMAD
+ * dsb + awalan dua hala) — pratonton ini mesti setuju dengan apa yang
+ * BENAR-BENAR berlaku semasa dijalankan, kalau tidak guru nampak "✓" atau
+ * "✗" palsu yang tidak sepadan hasil sebenar (semakan sebelum lancar, 1 Okt 2026).
+ */
 const norm = (s) => (s || '').toUpperCase().replace(/[^A-Z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+const SERUPA_NAMA = {
+  MUHAMMAD: 'MUHAMMAD', MUHAMAD: 'MUHAMMAD', MOHAMMAD: 'MUHAMMAD',
+  MOHAMAD: 'MUHAMMAD', MOHD: 'MUHAMMAD', MUHD: 'MUHAMMAD', MD: 'MUHAMMAD',
+  NUR: 'NUR', NOOR: 'NUR', NOR: 'NUR', ABD: 'ABDUL',
+};
+function normToken(t) {
+  if (t === 'BIN' || t === 'BT' || t === 'B' || t === 'BTE' ||
+      (t.length >= 3 && 'BINTI'.startsWith(t))) return 'BIN';
+  return SERUPA_NAMA[t] || t;
+}
 function score(short, full) {
   const F = norm(full), S = norm(short);
   if (!S || !F) return 0;
-  const ftok = F.split(' '), stok = S.split(' ');
+  const ftok = F.split(' ').map(normToken), stok = S.split(' ').map(normToken);
   let hit = 0;
   for (const t of stok) {
     if (ftok.includes(t)) hit += 2;
     else if (ftok.some((f) => f.startsWith(t) && t.length >= 3)) hit += 1.5;
+    else if (ftok.some((f) => t.startsWith(f) && f.length >= 3)) hit += 1.5;
     else if (F.replace(/ /g, '').includes(t)) hit += 1;
     else return 0;
   }

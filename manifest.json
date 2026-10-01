@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Kehadiran IDME",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Satu butang terus di halaman iSPEL: isi kehadiran murid automatik dari senarai tidak hadir yang disahkan guru kelas di Portal SKTD.",
   "permissions": [
     "storage",

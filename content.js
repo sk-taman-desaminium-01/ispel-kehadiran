@@ -16,7 +16,7 @@
   // serentak. Semak kewujudan SEBARANG nilai sedia ada, bukan versi tertentu.
   if (window.__ispelVersi) return;
 
-  const VERSI = '1.0.0';
+  const VERSI = '1.1.0';
   window.__ispelVersi = VERSI;
   const JOB_KEY = 'ispelJob';
 
@@ -234,9 +234,10 @@
   // "nur aisyah" padan dengan "NUR AISYAH BINTI AHMAD"; "nuraisyah" pun padan.
   //
   // `ketat` (nama dari Portal, sudah PENUH & rasmi): buang fallback "ada di
-  // mana-mana dalam rentetan" — itulah punca "Aisya Adiva" (Portal) tersasar
-  // padan dengan murid lain yang kebetulan mengandungi serpihan "Adiva" sahaja
-  // ("rapatkan semua ke Aisyaadiva" — laporan pengguna 1 Okt 2026). Awalan dua
+  // mana-mana dalam rentetan" — itulah punca nama dua-perkataan (Portal)
+  // tersasar padan dengan murid lain yang kebetulan mengandungi serpihan
+  // perkataan kedua sahaja ("rapatkan semua ke satu murid" — laporan
+  // pengguna 1 Okt 2026). Awalan dua
   // hala dikekalkan (selamat — ia mula dari PANGKAL perkataan, bukan mana-mana
   // tempat), kerana itu yang betulkan "BINT"/"MUHAMAD" tersingkat.
   function scoreName(short, full, ketat) {
@@ -1147,7 +1148,7 @@
 
   window.__ispelTest = {
     readRows, rowName, findRepeatedRows, diagnose, expandList, findDateField, applyDate, inventori,
-    markRow, saveAndConfirm, processDate, statusSekarang, inventoriButang, kawalanKehadiran, uruskanDialog, barisTidakLengkap, jejakNama, tutupDialogTertinggal, scoreName, matchRows, scoreOption, bestOption
+    markRow, saveAndConfirm, processDate, statusSekarang, inventoriButang, kawalanKehadiran, uruskanDialog, barisTidakLengkap, jejakNama, tutupDialogTertinggal, scoreName, matchRows, scoreOption, bestOption, parseSenaraiTeks
   };
 
   /* ───────────────── 11b. Kelas semasa (untuk "Tarik dari Portal") ─────
@@ -1222,6 +1223,89 @@
     if (jenis !== 'error') setTimeout(() => kotak.remove(), 9000);
   }
 
+  /**
+   * Pilihan KEDUA isi kehadiran — bila guru subjek/pertama TIDAK isi di
+   * Portal langsung, guru kelas tampal teks bebas terus (selalunya mesej
+   * WhatsApp yang mereka dah terima) dan isi iSPEL — memintas Portal
+   * sepenuhnya. Permintaan pengguna 2 Okt 2026: "jika guru masa pertama
+   * tak ambil tanggungjawab isi di apps, guru kelas yang akan isi."
+   *
+   * Format biasa diterima:
+   *   1. NAMA MURID
+   *   2. NAMA MURID - sebab
+   * Baris tajuk (TARIKH/HARI/KELAS/KEHADIRAN) dan baris "KEHADIRAN: x/y"
+   * diabaikan terus — rumusan itu SUDAH ada dalam iSPEL sendiri, tak
+   * perlu kita kira semula (permintaan pengguna, rujuk extension lain
+   * "MOIES Kehadiran Helper" sebagai inspirasi corak input, bukan kod).
+   *
+   * Nama TANPA sebab kekal rentetan biasa (padanan LONGGAR — sesuai untuk
+   * nama ditaip/disalin pantas dari WhatsApp, bukan rasmi macam Portal).
+   * Nama DENGAN sebab jadi objek {nama,sebab} (padanan ketat, sepadan
+   * processDate() — lihat nota `dariPortal` di situ).
+   */
+  function parseSenaraiTeks(teks) {
+    const hasil = [];
+    for (let baris of String(teks || '').split(/\r?\n/)) {
+      baris = baris.trim();
+      if (!baris) continue;
+      if (/^(TARIKH|HARI|KELAS|KEHADIRAN)\s*[:：]/i.test(baris)) continue;
+      // buang penomboran "1." "1)" "1-" atau bullet "-"/"•" di hadapan
+      baris = baris.replace(/^\s*(\d+\s*[.)\-]|[-•*])\s*/, '').trim();
+      if (!baris) continue;
+      // pisah nama daripada sebab — selepas " - "/" – ", atau dalam kurungan
+      let nama = baris, sebab = null;
+      const kurungan = baris.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
+      const sempang = baris.match(/^(.+?)\s+[-–]\s+(.+)$/);
+      if (kurungan) { nama = kurungan[1]; sebab = kurungan[2]; }
+      else if (sempang) { nama = sempang[1]; sebab = sempang[2]; }
+      nama = nama.trim();
+      if ((nama.match(/\p{L}/gu) || []).length < 2) continue; // buang serpihan "a", "l"
+      hasil.push(sebab ? { nama, sebab: sebab.trim() } : nama);
+    }
+    return hasil;
+  }
+
+  async function isiDariTeks(btn) {
+    const teks = prompt(
+      'Tampal senarai murid tidak hadir (satu nama setiap baris):\n\n' +
+      'Contoh:\n1. AMSYAR HARITH\n2. HADIF HAZIM - demam\n\n' +
+      'Baris TARIKH/HARI/KELAS/KEHADIRAN (jika ada) diabaikan automatik — ' +
+      'guna kelas & tarikh yang dipilih pada borang iSPEL sekarang.'
+    );
+    if (teks === null || !teks.trim()) return;
+    const senarai = parseSenaraiTeks(teks);
+    if (!senarai.length) {
+      tunjukNotis('Tiada nama dikesan', 'Pastikan setiap murid pada baris berasingan.', 'warning');
+      return;
+    }
+    const iso = tarikhSemasaIso();
+    if (!iso) {
+      tunjukNotis('Tidak dapat kesan tarikh', 'Pastikan tarikh sudah dipilih pada borang di atas, kemudian cuba lagi.', 'warning');
+      return;
+    }
+    const pratonton = senarai.map((s) => (typeof s === 'string' ? s : `${s.nama} (${s.sebab})`)).join('\n');
+    if (!confirm(`${senarai.length} murid dikesan:\n\n${pratonton}\n\nTeruskan isi ke iSPEL?`)) return;
+
+    const asalTeks = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '⏳ Mengisi iSPEL…';
+    try {
+      const hasil = await processDate(iso, senarai, { opt: OPT_LALAI });
+      if (hasil.status === 'berjaya') {
+        tunjukNotis('Berjaya ✓', `${senarai.length} murid tidak hadir diisi & disahkan di iSPEL.`, 'success');
+      } else if (hasil.status === 'skip') {
+        tunjukNotis('Dilangkau', hasil.msg, 'info');
+      } else {
+        tunjukNotis('Ada isu', hasil.msg + (hasil.isu?.length ? '\n\n' + hasil.isu.join('\n') : ''), 'error');
+      }
+    } catch (e) {
+      tunjukNotis('Ralat', String(e?.message || e), 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = asalTeks;
+    }
+  }
+
   async function isiDariPortalSatuHari(btn) {
     const asalTeks = btn.textContent;
     btn.disabled = true;
@@ -1275,18 +1359,31 @@
   }
 
   function bentukButangSuntik() {
-    if (document.getElementById('kehadiran-idme-sync-btn')) return;
-    const sasaran = document.getElementById('kemaskiniKehadiran');
-    if (!sasaran || !sasaran.parentElement) return;
-    const btn = document.createElement('button');
-    btn.id = 'kehadiran-idme-sync-btn';
-    btn.type = 'button';
-    btn.textContent = '📥 Portal SKTD';
-    btn.title = 'Tarik senarai tidak hadir yang disahkan guru kelas di Portal SKTD, isi terus ke iSPEL';
-    btn.style.cssText = 'background:#123561;color:#fff;border:none;border-radius:6px;' +
-      'padding:8px 14px;margin-left:8px;font-weight:600;cursor:pointer;font-size:13px;';
-    btn.addEventListener('click', () => isiDariPortalSatuHari(btn));
-    sasaran.parentElement.insertBefore(btn, sasaran.nextSibling);
+    if (!document.getElementById('kehadiran-idme-sync-btn')) {
+      const sasaran = document.getElementById('kemaskiniKehadiran');
+      if (!sasaran || !sasaran.parentElement) return;
+      const btn = document.createElement('button');
+      btn.id = 'kehadiran-idme-sync-btn';
+      btn.type = 'button';
+      btn.textContent = '📥 Portal SKTD';
+      btn.title = 'Tarik senarai tidak hadir yang disahkan guru kelas di Portal SKTD, isi terus ke iSPEL';
+      btn.style.cssText = 'background:#123561;color:#fff;border:none;border-radius:6px;' +
+        'padding:8px 14px;margin-left:8px;font-weight:600;cursor:pointer;font-size:13px;';
+      btn.addEventListener('click', () => isiDariPortalSatuHari(btn));
+      sasaran.parentElement.insertBefore(btn, sasaran.nextSibling);
+
+      // Pilihan KEDUA — guru kelas tampal teks (cth WhatsApp) terus, bila
+      // guru subjek/pertama tidak isi di Portal (permintaan pengguna 2 Okt 2026).
+      const btn2 = document.createElement('button');
+      btn2.id = 'kehadiran-idme-teks-btn';
+      btn2.type = 'button';
+      btn2.textContent = '📋 Tampal Senarai';
+      btn2.title = 'Tampal senarai murid tidak hadir (cth mesej WhatsApp) dan isi terus ke iSPEL — tanpa Portal';
+      btn2.style.cssText = 'background:#fff;color:#123561;border:2px solid #123561;border-radius:6px;' +
+        'padding:7px 14px;margin-left:8px;font-weight:600;cursor:pointer;font-size:13px;';
+      btn2.addEventListener('click', () => isiDariTeks(btn2));
+      btn.parentElement.insertBefore(btn2, btn.nextSibling);
+    }
   }
 
   if (halamanKehadiran()) {

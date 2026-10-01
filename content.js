@@ -5,9 +5,9 @@
 (() => {
   'use strict';
   if (window.__ispelVersi === '1.4.0') return;
-  window.__ispelVersi = '1.7.0';
+  window.__ispelVersi = '1.8.0';
 
-  const VERSI = '1.7.0';
+  const VERSI = '1.8.0';
   const JOB_KEY = 'ispelJob';
 
   /* ───────────────── 1. SELECTOR (calon; cuba satu demi satu) ───────────── */
@@ -222,7 +222,14 @@
   }
 
   // "nur aisyah" padan dengan "NUR AISYAH BINTI AHMAD"; "nuraisyah" pun padan.
-  function scoreName(short, full) {
+  //
+  // `ketat` (nama dari Portal, sudah PENUH & rasmi): buang fallback "ada di
+  // mana-mana dalam rentetan" — itulah punca "Aisya Adiva" (Portal) tersasar
+  // padan dengan murid lain yang kebetulan mengandungi serpihan "Adiva" sahaja
+  // ("rapatkan semua ke Aisyaadiva" — laporan pengguna 1 Okt 2026). Awalan dua
+  // hala dikekalkan (selamat — ia mula dari PANGKAL perkataan, bukan mana-mana
+  // tempat), kerana itu yang betulkan "BINT"/"MUHAMAD" tersingkat.
+  function scoreName(short, full, ketat) {
     const F = norm(full), S = norm(short);
     if (!S || !F) return 0;
     const ftok = F.split(' ').map(normToken);
@@ -232,15 +239,15 @@
       if (ftok.some((f) => f === t)) hit += 2;
       else if (ftok.some((f) => f.startsWith(t) && t.length >= 3)) hit += 1.5;
       else if (ftok.some((f) => t.startsWith(f) && f.length >= 3)) hit += 1.5;
-      else if (F.replace(/ /g, '').includes(t)) hit += 1;
+      else if (!ketat && F.replace(/ /g, '').includes(t)) hit += 1;
       else return 0; // setiap perkataan mesti ada
     }
     return hit / stok.length + (F.startsWith(S) ? 0.5 : 0);
   }
 
-  function matchRows(shortName, rows) {
+  function matchRows(shortName, rows, ketat) {
     const scored = rows
-      .map((r) => ({ row: r, name: r.__name, score: scoreName(shortName, r.__name) }))
+      .map((r) => ({ row: r, name: r.__name, score: scoreName(shortName, r.__name, ketat) }))
       .filter((x) => x.score > 0)
       .sort((a, b) => b.score - a.score);
     if (!scored.length) return { status: 'tiada' };
@@ -999,11 +1006,12 @@
       // Nama dari Portal SKTD bawa kategori/sebab SENDIRI (per murid). Nama
       // ditaip manual (rentetan biasa) guna lalai global job.opt.sebab/jenis
       // — keserasian ke belakang dengan setiap job lama yang tersimpan.
-      const nama = typeof item === 'string' ? item : item.nama;
-      const optNama = (typeof item === 'object' && (item.kategori || item.sebab))
+      const dariPortal = typeof item === 'object';
+      const nama = dariPortal ? item.nama : item;
+      const optNama = (dariPortal && (item.kategori || item.sebab))
         ? { ...job.opt, sebab: item.kategori || job.opt.sebab, jenis: item.sebab || job.opt.jenis }
         : job.opt;
-      const m = matchRows(nama, rows);
+      const m = matchRows(nama, rows, dariPortal);
       if (m.status === 'tiada') {
         const jejak = jejakNama(nama);
         isu.push(`"${nama}" tiada dalam ${rows.length} murid yang dibaca. ` +

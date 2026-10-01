@@ -1,4 +1,4 @@
-const VERSI = '1.7.0';
+const VERSI = '1.8.0';
 const JOB_KEY = 'ispelJob', PREF = 'ispelPref';
 
 /* ───── Pemecah nama: SEMUA aksara bukan huruf adalah pemisah, KECUALI jarak.
@@ -41,12 +41,10 @@ $('days').innerHTML = HARI.map((h, i) =>
 
 /* ───── simpan/pulih tetapan ───── */
 const TXT = ['from', 'to', 'skip', 'sebab', 'jenis', 'kelasPortal'];
-const CHK = ['sahkan', 'hadirLain', 'kosong', 'stopIsu', 'stopGagal'];
 (async () => {
   const { [PREF]: p } = await chrome.storage.local.get(PREF);
   if (p) {
     TXT.forEach((f) => { if (p[f] != null) $(f).value = p[f]; });
-    CHK.forEach((k) => { if (p[k] != null) $(k).checked = p[k]; });
     if (p.days) document.querySelectorAll('.d').forEach((c) => (c.checked = p.days.includes(+c.value)));
     if (p.entries?.length) { entries = p.entries; drawSched(); }
     if (p.from && p.to) buildSchedule(true);   // selaraskan baris dengan julat tarikh sebenar
@@ -80,7 +78,6 @@ const CHK = ['sahkan', 'hadirLain', 'kosong', 'stopIsu', 'stopGagal'];
 function savePref() {
   const p = { days: days(), entries: collect() };
   TXT.forEach((f) => (p[f] = $(f).value));
-  CHK.forEach((k) => (p[k] = $(k).checked));
   chrome.storage.local.set({ [PREF]: p });
 }
 const dmy = (iso) => { const [y, m, d] = iso.split('-'); return `${d}/${m}/${y}`; };
@@ -334,7 +331,10 @@ async function mulakan(hanyaSatu) {
   try {
     collect();
     if (!entries.length) throw new Error('Bina jadual dahulu');
-    const senarai = $('kosong').checked ? entries.filter((e) => e.names.length) : entries;
+    // Tarikh tiada nama = semua hadir, sentiasa dilangkau — tiada tetapan
+    // perlu ditunjukkan untuk ini (permintaan pengguna 1 Okt 2026: buang
+    // tanda-tanda yang mengelirukan guru tua, auto guna yang sesuai sahaja).
+    const senarai = entries.filter((e) => e.names.length);
     if (!senarai.length) {
       throw new Error('Tiada tarikh berisi nama — pastikan nama ditaip dalam kotak bersebelahan tarikh, dipisah dengan koma');
     }
@@ -344,11 +344,11 @@ async function mulakan(hanyaSatu) {
       opt: {
         sebab: $('sebab').value.trim() || 'Masalah Kesihatan',
         jenis: $('jenis').value.trim() || 'Demam',
-        sahkan: $('sahkan').checked,
-        tandaHadirLain: $('hadirLain').checked,
-        langkauKosong: $('kosong').checked,
-        berhentiJikaIsu: $('stopIsu').checked,
-        berhentiJikaGagal: hanyaSatu ? true : $('stopGagal').checked,
+        sahkan: true,
+        tandaHadirLain: true,
+        langkauKosong: true,
+        berhentiJikaIsu: false,
+        berhentiJikaGagal: hanyaSatu,
         jedaMs: 900
       }
     }});

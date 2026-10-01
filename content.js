@@ -5,9 +5,9 @@
 (() => {
   'use strict';
   if (window.__ispelVersi === '1.4.0') return;
-  window.__ispelVersi = '1.6.0';
+  window.__ispelVersi = '1.6.1';
 
-  const VERSI = '1.6.0';
+  const VERSI = '1.6.1';
   const JOB_KEY = 'ispelJob';
 
   /* ───────────────── 1. SELECTOR (calon; cuba satu demi satu) ───────────── */
@@ -1190,14 +1190,12 @@
         tunjukNotis('Tidak dapat kesan kelas/tarikh', 'Pastikan kelas dan tarikh sudah dipilih pada borang di atas, kemudian cuba lagi.', 'warning');
         return;
       }
-      let data = null, status = null;
-      for (const asal of ['https://sktd.edu.my/portal', 'https://portal.sktd.edu.my/portal']) {
-        try {
-          const r = await fetch(`${asal}/api/kehadiran?kelas=${encodeURIComponent(kelas.portal)}&tarikh=${iso}`, { credentials: 'include' });
-          status = r.status;
-          if (r.ok) { data = await r.json(); break; }
-        } catch (_) { /* cuba asal seterusnya */ }
-      }
+      // Fetch MESTI melalui background service worker, bukan terus dari sini
+      // — content.js berjalan di atas moeispel.moe.gov.my dan tertakluk
+      // kepada CSP laman itu, yang boleh sekat connect-src ke domain lain.
+      const jwpn = await chrome.runtime.sendMessage({ cmd: 'tarikPortal', kelas: kelas.portal, tarikh: iso });
+      const data = jwpn?.ok ? jwpn.data : null;
+      const status = jwpn?.status ?? null;
       if (!data) {
         const msg = status === 401
           ? 'Log masuk portal.sktd.edu.my di tab lain Chrome dahulu, kemudian cuba lagi.'

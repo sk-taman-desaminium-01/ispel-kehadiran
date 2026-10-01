@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Kehadiran IDME",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "Satu butang terus di halaman iSPEL: isi kehadiran murid automatik dari senarai tidak hadir yang disahkan guru kelas di Portal SKTD.",
   "permissions": [
     "storage",
@@ -13,6 +13,9 @@
     "https://sktd.edu.my/*",
     "https://portal.sktd.edu.my/*"
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
